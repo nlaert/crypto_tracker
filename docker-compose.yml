@@ -1,0 +1,24 @@
+services:
+  app:
+    image: amazoncorretto:17
+    container_name: tracker_backend
+    build:
+      context: .
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/tracker
+      SPRING_DATASOURCE_USERNAME: tracker_user
+      SPRING_DATASOURCE_PASSWORD: tracker_password
+    depends_on:
+      - db
+
+  db:
+    image: postgres:16
+    container_name: postgres_db
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: tracker
+      POSTGRES_USER: tracker_user
+      POSTGRES_PASSWORD: tracker_password
