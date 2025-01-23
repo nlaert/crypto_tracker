@@ -48,7 +48,7 @@ public class GetCurrentPricesScheduler {
         }
     }
 
-    private void getAssetData(AssetEntity assetEntity) {
+    private void getAssetData(AssetEntity assetEntity) { // TODO: Replace this with coinCapService
         String url = "https://api.coincap.io/v2/assets?search=" + assetEntity.getSymbol();
         Data response = restTemplate.getForObject(url, Data.class);
         if (response != null) {

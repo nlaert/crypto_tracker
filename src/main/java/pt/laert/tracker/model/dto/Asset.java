@@ -1,16 +1,18 @@
 package pt.laert.tracker.model.dto;
 
+import java.math.BigDecimal;
+
 public class Asset {
     private String symbol;
-    private String name;
+    private BigDecimal quantity;
     private Double price;
 
     public Asset() {
     }
 
-    public Asset(String symbol, String name, Double price) {
+    public Asset(String symbol, BigDecimal quantity, Double price) {
         this.symbol = symbol;
-        this.name = name;
+        this.quantity = quantity;
         this.price = price;
     }
 
@@ -22,12 +24,12 @@ public class Asset {
         this.symbol = symbol;
     }
 
-    public String getName() {
-        return name;
+    public BigDecimal getQuantity() {
+        return quantity;
     }
 
-    public void setName(String name) {
-        this.name = name;
+    public void setQuantity(BigDecimal quantity) {
+        this.quantity = quantity;
     }
 
     public Double getPrice() {
