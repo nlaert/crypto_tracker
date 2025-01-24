@@ -5,8 +5,8 @@ import io.zonky.test.db.AutoConfigureEmbeddedDatabase;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.Collections;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -22,15 +22,18 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.client.ExpectedCount;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestTemplate;
+import pt.laert.tracker.model.WalletAssetsEntity;
 import pt.laert.tracker.model.WalletEntity;
 import pt.laert.tracker.model.dto.Asset;
 import pt.laert.tracker.model.dto.CoinData;
 import pt.laert.tracker.model.dto.Data;
 import pt.laert.tracker.model.dto.Wallet;
+import pt.laert.tracker.model.dto.WalletAssets;
 import pt.laert.tracker.repositories.WalletAssetsRepository;
 import pt.laert.tracker.repositories.WalletRepository;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
@@ -162,5 +165,59 @@ class WalletControllerIT {
         assertEquals(asset.getPrice(), walletAssetEntity.getOriginalValue());
     }
 
+    @Test
+    public void testGetWalletShouldReturnWalletWithAssetsAndTotalPrice() {
+         // Given
+        String email = "aRealEmail@gmail.com";
+        var walletEntity = new WalletEntity(email);
+        walletEntity = walletRepository.save(walletEntity);
+        WalletAssetsEntity assetBtc = new WalletAssetsEntity(
+                walletEntity.getId(),
+                "BTC",
+                BigDecimal.valueOf(1),
+                17000.0
+        );
+        WalletAssetsEntity assetEth = new WalletAssetsEntity(
+                walletEntity.getId(),
+                "ETH",
+                BigDecimal.valueOf(5),
+                2000.0
+        );
+        walletAssetsRepository.saveAll(List.of(assetBtc, assetEth));
+        var btcSavedValue = 100000.0; // Values defined in V2 flyway script
+        var ethSavedValue = 3320.23;
+        var walletAssets = new WalletAssets(
+                walletEntity.getId(),
+                btcSavedValue + ethSavedValue * 5,
+                List.of(
+                        new Asset(
+                                assetBtc.getSymbol(),
+                                assetBtc.getQuantity(),
+                                assetBtc.getOriginalValue()
+                        ),
+                        new Asset(
+                                assetEth.getSymbol(),
+                                assetEth.getQuantity(),
+                                assetEth.getOriginalValue()
+                        )
+                )
+        );
+
+        // Assets are already created in V2 flyway script
+
+        // When
+        var response = testRestTemplate.getForEntity("/wallet/" + walletEntity.getId(), WalletAssets.class);
+
+        // Then
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        var responseBody = response.getBody();
+        assertNotNull(responseBody);
+        assertEquals(walletAssets.getId(), responseBody.getId());
+        assertEquals(walletAssets.getTotal(), responseBody.getTotal());
+        var responseAssets = responseBody.getAssets();
+        assertEquals(walletAssets.getAssets().size(), responseAssets.size());
+        assertEquals(btcSavedValue, responseAssets.get(0).getPrice());
+        assertEquals(ethSavedValue, responseAssets.get(1).getPrice());
+    }
 
 }

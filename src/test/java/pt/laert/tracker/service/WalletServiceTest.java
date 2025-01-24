@@ -1,6 +1,7 @@
 package pt.laert.tracker.service;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -15,6 +16,7 @@ import pt.laert.tracker.model.WalletEntity;
 import pt.laert.tracker.model.dto.Asset;
 import pt.laert.tracker.model.dto.CoinData;
 import pt.laert.tracker.model.dto.Wallet;
+import pt.laert.tracker.model.dto.WalletAssets;
 import pt.laert.tracker.repositories.AssetsRepository;
 import pt.laert.tracker.repositories.WalletAssetsRepository;
 import pt.laert.tracker.repositories.WalletRepository;
@@ -47,17 +49,13 @@ class WalletServiceTest {
 
     @Test
     void testCreateWallet_NullEmail() {
-        Exception exception = assertThrows(IllegalArgumentException.class, () -> {
-            walletService.createWallet(null);
-        });
+        Exception exception = assertThrows(IllegalArgumentException.class, () -> walletService.createWallet(null));
         assertEquals("User email cannot be null", exception.getMessage());
     }
 
     @Test
     void testCreateWallet_BlankEmail() {
-        Exception exception = assertThrows(IllegalArgumentException.class, () -> {
-            walletService.createWallet("   ");
-        });
+        Exception exception = assertThrows(IllegalArgumentException.class, () -> walletService.createWallet("   "));
         assertEquals("User email cannot be null", exception.getMessage());
     }
 
@@ -120,9 +118,8 @@ class WalletServiceTest {
         when(assetsRepository.findBySymbol(asset.getSymbol())).thenReturn(Optional.empty());
         when(coinCapService.searchForAsset(asset.getSymbol())).thenReturn(null);
 
-        Exception exception = assertThrows(IllegalArgumentException.class, () -> {
-            walletService.addAssetToWallet(walletId, asset);
-        });
+        Exception exception = assertThrows(IllegalArgumentException.class, () ->
+                walletService.addAssetToWallet(walletId, asset));
         assertEquals("Asset does not exist: " + asset.getSymbol(), exception.getMessage());
     }
 
@@ -142,5 +139,49 @@ class WalletServiceTest {
 
         verify(assetsRepository).save(any(AssetEntity.class));
         verify(walletAssetsRepository).save(any(WalletAssetsEntity.class));
+    }
+
+    @Test
+    void testGetWallet_WalletNotFound() {
+        Long walletId = 100L;
+        when(walletAssetsRepository.findAllByWalletId(walletId)).thenReturn(List.of());
+
+        assertThrows(WalletNotFoundException.class, () -> walletService.getWallet(walletId));
+    }
+
+    @Test
+    void testGetWallet_Success() {
+        Long walletId = 1L;
+        WalletAssetsEntity walletAsset1 = new WalletAssetsEntity(walletId, "BTC", BigDecimal.valueOf(2.0), 17000.0);
+        WalletAssetsEntity walletAsset2 = new WalletAssetsEntity(walletId, "ETH", BigDecimal.valueOf(1.0), 3000.0);
+
+        when(walletAssetsRepository.findAllByWalletId(walletId)).thenReturn(List.of(walletAsset1, walletAsset2));
+
+        AssetEntity asset1 = new AssetEntity("BTC", "Bitcoin", 100000.0);
+        AssetEntity asset2 = new AssetEntity("ETH", "Ethereum", 3500.0);
+        when(assetsRepository.findAllBySymbolIn(List.of("BTC", "ETH"))).thenReturn(List.of(asset1, asset2));
+
+        WalletAssets result = walletService.getWallet(walletId);
+
+        assertNotNull(result);
+        assertEquals(walletId, result.getId());
+        assertEquals(2, result.getAssets().size());
+        assertEquals(2.0 * 100000 + 3500.0, result.getTotal());
+    }
+
+    @Test
+    void testGetWallet_EmptyAssetList() {
+        Long walletId = 1L;
+        WalletAssetsEntity walletAsset1 = new WalletAssetsEntity(walletId, "BTC", BigDecimal.valueOf(2.0), 50000.0);
+
+        when(walletAssetsRepository.findAllByWalletId(walletId)).thenReturn(List.of(walletAsset1));
+        when(assetsRepository.findAllBySymbolIn(List.of("BTC"))).thenReturn(List.of());
+
+        WalletAssets result = walletService.getWallet(walletId);
+
+        assertNotNull(result);
+        assertEquals(walletId, result.getId());
+        assertEquals(0, result.getAssets().size());
+        assertEquals(0.0, result.getTotal());
     }
 }

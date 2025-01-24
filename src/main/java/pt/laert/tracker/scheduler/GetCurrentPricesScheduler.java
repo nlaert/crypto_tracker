@@ -34,7 +34,7 @@ public class GetCurrentPricesScheduler {
 
     private final Logger logger = LoggerFactory.getLogger(GetCurrentPricesScheduler.class);
 
-    @Scheduled(fixedRateString = "${get-prices.interval-in-millis}")
+    @Scheduled(fixedRateString = "${get-prices.interval-in-millis}", initialDelay = 10000)
     public void getCurrentPrices() {
         logger.info("Starting to get current prices");
         var assets = assetsRepository.findAll();

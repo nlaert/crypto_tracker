@@ -6,6 +6,7 @@ public class Asset {
     private String symbol;
     private BigDecimal quantity;
     private Double price;
+    private Double value;
 
     public Asset() {
     }
@@ -38,5 +39,9 @@ public class Asset {
 
     public void setPrice(Double price) {
         this.price = price;
+    }
+
+    public Double getValue() {
+        return price * quantity.doubleValue();
     }
 }
