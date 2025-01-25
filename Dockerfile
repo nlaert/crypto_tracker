@@ -1,7 +1,7 @@
 FROM maven:3.9.9-amazoncorretto-17 AS build
 COPY . /app
 WORKDIR /app
-RUN mvn package -DskipTests
+RUN mvn clean package -DskipTests
 
 # Second stage: create a slim image
 FROM amazoncorretto:17
