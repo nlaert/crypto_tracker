@@ -168,7 +168,7 @@ class WalletControllerIT {
     @Test
     public void testGetWalletShouldReturnWalletWithAssetsAndTotalPrice() {
          // Given
-        String email = "aRealEmail@gmail.com";
+        String email = "anotherEmail@gmail.com";
         var walletEntity = new WalletEntity(email);
         walletEntity = walletRepository.save(walletEntity);
         WalletAssetsEntity assetBtc = new WalletAssetsEntity(

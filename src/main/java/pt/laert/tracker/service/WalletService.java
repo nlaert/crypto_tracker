@@ -93,7 +93,8 @@ public class WalletService {
                             asset.getPrice()
         )).toList();
 
-        double totalPrice = assets.stream().mapToDouble( asset -> asset.getPrice() * asset.getQuantity().doubleValue() ).sum();
+        double totalPrice = assets.stream().mapToDouble( asset ->
+                asset.getPrice() * asset.getQuantity().doubleValue()).sum();
         return new WalletAssets(
                 id,
                 totalPrice,

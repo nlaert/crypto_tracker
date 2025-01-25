@@ -41,7 +41,14 @@ public class Asset {
         this.price = price;
     }
 
+    public void setValue(Double value) {
+        this.value = value;
+    }
+
     public Double getValue() {
+        if (value != null) {
+            return value;
+        }
         return price * quantity.doubleValue();
     }
 }
