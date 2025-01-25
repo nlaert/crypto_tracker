@@ -8,27 +8,26 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
+import pt.laert.tracker.error.AssetNotFoundException;
 import pt.laert.tracker.model.AssetEntity;
-import pt.laert.tracker.model.dto.CoinData;
-import pt.laert.tracker.model.dto.Data;
 import pt.laert.tracker.repositories.AssetsRepository;
+import pt.laert.tracker.service.CoinCapService;
 
 @Service
 public class GetCurrentPricesScheduler {
 
     private static final int NUMBER_OF_THREADS = 3;
 
-    private final RestTemplate restTemplate;
-
     private final AssetsRepository assetsRepository;
+
+    private final CoinCapService coinCapService;
 
     private final ExecutorService executorService;
 
     @Autowired
-    public GetCurrentPricesScheduler(RestTemplate restTemplate, AssetsRepository assetsRepository) {
-        this.restTemplate = restTemplate;
+    public GetCurrentPricesScheduler(AssetsRepository assetsRepository, CoinCapService coinCapService) {
         this.assetsRepository = assetsRepository;
+        this.coinCapService = coinCapService;
         this.executorService = Executors.newFixedThreadPool(NUMBER_OF_THREADS);
     }
 
@@ -48,22 +47,18 @@ public class GetCurrentPricesScheduler {
         }
     }
 
-    private void getAssetData(AssetEntity assetEntity) { // TODO: Replace this with coinCapService
-        String url = "https://api.coincap.io/v2/assets?search=" + assetEntity.getSymbol();
-        Data response = restTemplate.getForObject(url, Data.class);
-        if (response != null) {
-            logger.info("Got price for asset: {}.  Response: {}", assetEntity.getSymbol(), response);
-            CoinData responseCoinData = response.getData().stream().filter(coinData ->
-                            coinData.getSymbol().equals(assetEntity.getSymbol()))
-                    .findFirst().orElse(null);
-            if (responseCoinData != null) {
-                assetEntity.setPrice(responseCoinData.getPriceAsDouble());
+    private void getAssetData(AssetEntity assetEntity) {
+        try {
+            var response = coinCapService.searchForAsset(assetEntity.getSymbol());
+            if (response != null) {
+                logger.info("Got price for asset: {}.  Response: {}", assetEntity.getSymbol(), response);
+                assetEntity.setPrice(response.getPriceAsDouble());
                 assetsRepository.save(assetEntity);
             } else {
                 logger.warn("Coincap search did not return expected symbol {}", assetEntity.getSymbol());
             }
-        } else {
-            logger.error("Error getting price for coin with symbol: {}", assetEntity.getSymbol());
+        } catch (AssetNotFoundException exception) {
+            logger.error("Asset not found: {}. This should be a temporary error.", assetEntity.getSymbol());
         }
     }
 }

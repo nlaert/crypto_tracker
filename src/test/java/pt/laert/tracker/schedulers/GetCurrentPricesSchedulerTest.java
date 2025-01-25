@@ -2,20 +2,17 @@ package pt.laert.tracker.schedulers;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.web.client.RestTemplate;
 import pt.laert.tracker.model.AssetEntity;
 import pt.laert.tracker.model.dto.CoinData;
-import pt.laert.tracker.model.dto.Data;
 import pt.laert.tracker.repositories.AssetsRepository;
 import pt.laert.tracker.scheduler.GetCurrentPricesScheduler;
+import pt.laert.tracker.service.CoinCapService;
 
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -23,13 +20,10 @@ import static org.mockito.Mockito.when;
 class GetCurrentPricesSchedulerTest {
 
     @Mock
-    private RestTemplate restTemplate;
-
-    @Mock
-    private ExecutorService executorService;
-
-    @Mock
     private AssetsRepository assetsRepository;
+
+    @Mock
+    private CoinCapService coinCapService;
 
     @InjectMocks
     private GetCurrentPricesScheduler getCurrentPricesScheduler;
@@ -39,15 +33,14 @@ class GetCurrentPricesSchedulerTest {
         // Given
         var assets = createAssetEntities();
         var coinData = createCoinData();
-        var url = "https://api.coincap.io/v2/assets?search=";
 
         // When
         when(assetsRepository.findAll()).thenReturn(assets);
 
-        when(restTemplate.getForObject(eq(url + "BTC"), eq(Data.class))).thenReturn(coinData);
-        when(restTemplate.getForObject(eq(url + "ETH"), eq(Data.class))).thenReturn(coinData);
-        when(restTemplate.getForObject(eq(url + "XRP"), eq(Data.class))).thenReturn(coinData);
-        when(restTemplate.getForObject(eq(url + "ADA"), eq(Data.class))).thenReturn(coinData);
+        when(coinCapService.searchForAsset("BTC")).thenReturn(coinData.get(0));
+        when(coinCapService.searchForAsset("ETH")).thenReturn(coinData.get(1));
+        when(coinCapService.searchForAsset("XRP")).thenReturn(coinData.get(2));
+        when(coinCapService.searchForAsset("ADA")).thenReturn(coinData.get(3));
 
         getCurrentPricesScheduler.getCurrentPrices();
 
@@ -82,7 +75,7 @@ class GetCurrentPricesSchedulerTest {
         return List.of(btc, eth, xrp, ada);
     }
 
-    private Data createCoinData() {
+    private List<CoinData> createCoinData() {
         var btc = new CoinData(
                 "bitcoin",
                 "BTC",
@@ -107,7 +100,7 @@ class GetCurrentPricesSchedulerTest {
                 "Cardano",
                 BigDecimal.valueOf(1.01)
         );
-        return new Data(List.of(btc, eth, xrp, ada));
+        return List.of(btc, eth, xrp, ada);
     }
 
 }

@@ -17,7 +17,7 @@ public class CoinCapService {
         this.restTemplate = restTemplate;
     }
 
-    public CoinData searchForAsset(String symbol) {
+    public CoinData searchForAsset(String symbol) throws AssetNotFoundException {
         String url = API_URL + symbol;
         Data response = restTemplate.getForObject(url, Data.class);
         if (response == null) {
